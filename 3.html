@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Classroom Monopoly: Interactive Auction Mode</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+    }
+    header {
+      background: #2e86de;
+      color: white;
+      padding: 20px 40px;
+      text-align: center;
+    }
+    main {
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    h2 {
+      color: #2e86de;
+    }
+    .board-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(11, 50px);
+      grid-template-rows: repeat(11, 50px);
+      border: 4px solid #444;
+      margin: 20px 0;
+    }
+    .cell {
+      border: 1px solid #999;
+      background: #fff;
+      text-align: center;
+      font-size: 10px;
+      padding: 2px;
+      position: relative;
+    }
+    .corner {
+      background: #ddd;
+      font-weight: bold;
+    }
+    .property {
+      cursor: pointer;
+    }
+    .property.owned {
+      background: #c0f0c0;
+    }
+    .token {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: absolute;
+    }
+    .team0 { background: red; }
+    .team1 { background: blue; }
+    .team2 { background: green; }
+    .team3 { background: orange; }
+    .team4 { background: purple; }
+    .team5 { background: brown; }
+    .team6 { background: black; }
+    .controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Classroom Monopoly: Auction-Only Mode</h1>
+    <p>With Interactive Virtual Board and Dice Roll</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Interactive Monopoly Board</h2>
+      <div class="board-container">
+        <div id="board" class="board"></div>
+        <div class="controls">
+          <button onclick="rollDice()">Roll Dice</button>
+          <p id="turnDisplay">Current Team: Team 1</p>
+          <p id="diceResult"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const boardSize = 40;
+    const teamCount = 7;
+    const boardElement = document.getElementById('board');
+    const turnDisplay = document.getElementById('turnDisplay');
+    const diceResult = document.getElementById('diceResult');
+
+    const teamPositions = Array(teamCount).fill(0); // Start all at GO
+    let currentTeam = 0;
+
+    const positions = [];
+
+    // Generate board layout (bottom row, left column, top row, right column)
+    function generateBoard() {
+      for (let i = 0; i < 121; i++) {
+        const x = i % 11;
+        const y = Math.floor(i / 11);
+        let index = -1;
+        if (y === 10) index = 10 - x; // bottom row
+        else if (x === 0) index = 10 + (9 - y); // left column
+        else if (y === 0) index = 20 + (x - 1); // top row
+        else if (x === 10) index = 30 + (y - 1); // right column
+
+        const div = document.createElement('div');
+        div.classList.add('cell');
+        if (index >= 0) {
+          div.innerHTML = "P" + index;
+          div.classList.add('property');
+          div.dataset.index = index;
+          positions[index] = div;
+          if ([0, 10, 20, 30].includes(index)) div.classList.add('corner');
+          div.onclick = () => toggleOwnership(index);
+        }
+        boardElement.appendChild(div);
+      }
+      updateTokens();
+    }
+
+    function toggleOwnership(index) {
+      const cell = positions[index];
+      cell.classList.toggle('owned');
+    }
+
+    function updateTokens() {
+      // Remove all existing tokens
+      positions.forEach(p => {
+        const existing = p.querySelectorAll('.token');
+        existing.forEach(e => e.remove());
+      });
+
+      // Add tokens
+      teamPositions.forEach((pos, team) => {
+        const token = document.createElement('div');
+        token.classList.add('token', 'team' + team);
+        token.style.top = (team * 12) + 'px';
+        token.style.left = (team * 12) + 'px';
+        positions[pos].appendChild(token);
+      });
+    }
+
+    function rollDice() {
+      // Simulate dice roll (two dice)
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const total = die1 + die2;
+
+      // Update dice result text
+      diceResult.innerText = "You rolled: " + die1 + " + " + die2 + " = " + total;
+
+      // Move the current team's token
+      teamPositions[currentTeam] = (teamPositions[currentTeam] + total) % boardSize;
+      updateTokens();
+
+      // Next team turn
+      currentTeam = (currentTeam + 1) % teamCount;
+      turnDisplay.innerText = "Current Team: Team " + (currentTeam + 1);
+    }
+
+    generateBoard();
+  </script>
+</body>
+</html>
