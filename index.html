@@ -3,14 +3,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Classroom Monopoly Auction Mode</title>
+  <title>Classroom Monopoly: Interactive Auction Mode</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
       padding: 0;
       background: #f4f4f4;
-      color: #333;
     }
     header {
       background: #2e86de;
@@ -19,76 +18,156 @@
       text-align: center;
     }
     main {
-      padding: 40px;
-      max-width: 900px;
+      padding: 20px;
+      max-width: 1000px;
       margin: auto;
-    }
-    section {
-      margin-bottom: 40px;
     }
     h2 {
       color: #2e86de;
     }
-    a.button {
-      display: inline-block;
-      padding: 10px 15px;
-      margin-top: 10px;
-      background-color: #2e86de;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
+    .board-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .sheet-links ul {
-      list-style-type: none;
-      padding-left: 0;
+    .board {
+      display: grid;
+      grid-template-columns: repeat(11, 50px);
+      grid-template-rows: repeat(11, 50px);
+      border: 4px solid #444;
+      margin: 20px 0;
     }
-    .sheet-links li {
-      margin: 8px 0;
+    .cell {
+      border: 1px solid #999;
+      background: #fff;
+      text-align: center;
+      font-size: 10px;
+      padding: 2px;
+      position: relative;
+    }
+    .corner {
+      background: #ddd;
+      font-weight: bold;
+    }
+    .property {
+      cursor: pointer;
+    }
+    .property.owned {
+      background: #c0f0c0;
+    }
+    .token {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: absolute;
+    }
+    .team0 { background: red; }
+    .team1 { background: blue; }
+    .team2 { background: green; }
+    .team3 { background: orange; }
+    .team4 { background: purple; }
+    .team5 { background: brown; }
+    .team6 { background: black; }
+
+    .controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Classroom Monopoly: Auction-Only Edition</h1>
-    <p>Designed for 21 Students / 7 Teams</p>
+    <h1>Classroom Monopoly: Auction-Only Mode</h1>
+    <p>With Interactive Virtual Board</p>
   </header>
 
   <main>
     <section>
-      <h2>Quick-Start Guide</h2>
-      <ol>
-        <li>Divide into 7 teams of 3 players.</li>
-        <li>Each team starts with $1,500 Monopoly money.</li>
-        <li>Use 1 Monopoly board. Skip buying—go straight to auction when landing on a property.</li>
-        <li>All teams can bid. Bidding starts at $1, increases in $10+ increments.</li>
-        <li>Rotate team turns to roll dice and land on properties.</li>
-        <li>Track team cash and property using the auction sheets.</li>
-        <li>End game after time is up. Highest net worth wins!</li>
-      </ol>
-    </section>
-
-    <section class="sheet-links">
-      <h2>Auction Sheets</h2>
-      <p>Use these to track each team's purchases and spending:</p>
-      <ul>
-        <li>Team 1 Auction Sheet</li>
-        <li>Team 2 Auction Sheet</li>
-        <li>Team 3 Auction Sheet</li>
-        <li>Team 4 Auction Sheet</li>
-        <li>Team 5 Auction Sheet</li>
-        <li>Team 6 Auction Sheet</li>
-        <li>Team 7 Auction Sheet</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Tips</h2>
-      <ul>
-        <li>Use a timer for turns (1 minute max per team).</li>
-        <li>Banker/Auctioneer runs the show—keeps things moving fast.</li>
-        <li>Optionally use a Google Sheet to track total cash/property values.</li>
-      </ul>
+      <h2>Interactive Monopoly Board</h2>
+      <div class="board-container">
+        <div id="board" class="board"></div>
+        <div class="controls">
+          <button onclick="nextTurn()">Next Turn</button>
+          <p id="turnDisplay">Current Team: Team 1</p>
+        </div>
+      </div>
     </section>
   </main>
+
+  <script>
+    const boardSize = 40;
+    const teamCount = 7;
+    const boardElement = document.getElementById('board');
+    const turnDisplay = document.getElementById('turnDisplay');
+
+    const teamPositions = Array(teamCount).fill(0); // Start all at GO
+    let currentTeam = 0;
+
+    const positions = [];
+
+    // Generate board layout (bottom row, left column, top row, right column)
+    function generateBoard() {
+      for (let i = 0; i < 121; i++) {
+        const x = i % 11;
+        const y = Math.floor(i / 11);
+        let index = -1;
+        if (y === 10) index = 10 - x; // bottom row
+        else if (x === 0) index = 10 + (9 - y); // left column
+        else if (y === 0) index = 20 + (x - 1); // top row
+        else if (x === 10) index = 30 + (y - 1); // right column
+
+        const div = document.createElement('div');
+        div.classList.add('cell');
+        if (index >= 0) {
+          div.innerHTML = "P" + index;
+          div.classList.add('property');
+          div.dataset.index = index;
+          positions[index] = div;
+          if ([0, 10, 20, 30].includes(index)) div.classList.add('corner');
+          div.onclick = () => toggleOwnership(index);
+        }
+        boardElement.appendChild(div);
+      }
+      updateTokens();
+    }
+
+    function toggleOwnership(index) {
+      const cell = positions[index];
+      cell.classList.toggle('owned');
+    }
+
+    function updateTokens() {
+      // Remove all existing tokens
+      positions.forEach(p => {
+        const existing = p.querySelectorAll('.token');
+        existing.forEach(e => e.remove());
+      });
+
+      // Add tokens
+      teamPositions.forEach((pos, team) => {
+        const token = document.createElement('div');
+        token.classList.add('token', 'team' + team);
+        token.style.top = (team * 12) + 'px';
+        token.style.left = (team * 12) + 'px';
+        positions[pos].appendChild(token);
+      });
+    }
+
+    function nextTurn() {
+      // Move the current team's token
+      teamPositions[currentTeam] = (teamPositions[currentTeam] + 1) % 40;
+      updateTokens();
+      currentTeam = (currentTeam + 1) % teamCount;
+      turnDisplay.innerText = "Current Team: Team " + (currentTeam + 1);
+    }
+
+    generateBoard();
+  </script>
 </body>
 </html>
